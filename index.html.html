@@ -1,0 +1,158 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Incident Formatter</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background-color: #f0f2f5; }
+    textarea, input, button, select {
+      width: 100%; padding: 10px; margin: 10px 0;
+      font-size: 16px; border: 1px solid #ccc; border-radius: 4px;
+    }
+    button {
+      background-color: #0078D4; color: white;
+      font-weight: bold; border: none; cursor: pointer;
+    }
+    #outputBox {
+      display: none; margin-top: 20px;
+    }
+    #output {
+      white-space: pre-wrap; background-color: #fff;
+      padding: 15px; border: 1px solid #ddd; border-radius: 4px;
+    }
+    label { font-weight: bold; margin-bottom: 4px; display: block; }
+    .readonly-actions {
+      background: #f7f7f7; color: #333; border: none; margin-bottom: 0;
+      font-style: italic;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h2>Incident Communication Formatter</h2>
+
+  <textarea id="issue" placeholder="*ISSUE*"></textarea>
+  <textarea id="impact" placeholder="*IMPACT*"></textarea>
+  <input type="text" id="startTime" placeholder="*START TIME*">
+  <input type="text" id="endTime" placeholder="*END TIME*">
+
+  <label><b>Actions (three mandatory actions below; add more as bullet points, one per line)</b></label>
+  <textarea class="readonly-actions" readonly rows="3">- WebEx call initiated
+- Resolver groups mobilized
+- Diagnoses and Troubleshooting initiated</textarea>
+  <textarea id="actions" placeholder="Add extra actions here. Enter each action on a new line (each line will be a bullet point)."></textarea>
+
+  <label><b>Resolver Groups (Choose from dropdown OR enter custom below)</b></label>
+  <select id="resolverGroups" multiple size="7">
+    <option value="APIC">APIC</option>
+    <option value="STM">STM</option>
+    <option value="NETWORK">NETWORK</option>
+    <option value="CORTEX">CORTEX</option>
+    <option value="IVR">IVR</option>
+    <option value="ATM">ATM</option>
+    <option value="External Caused">External Caused</option>
+  </select>
+  <input type="text" id="customResolverGroup" placeholder="Or enter custom Resolver Groups, comma separated">
+
+  <label><b>Business Impact</b></label>
+  <select id="businessImpact">
+    <option value="">Select business impact</option>
+    <option value="Internal">Internal</option>
+    <option value="External">External</option>
+    <option value="Customers">Customers</option>
+    <option value="Retail">Retail</option>
+    <option value="Internal/External">Internal/External</option>
+    <option value="Corporate">Corporate</option>
+  </select>
+
+  <input type="text" id="notifySama" placeholder="*NOTIFY SAMA*">
+
+  <label><b>Incident Owner (Choose from dropdown OR enter custom below)</b></label>
+  <select id="incidentOwnerSelect">
+    <option value="">Select owner</option>
+    <option value="APIC">APIC</option>
+    <option value="STM">STM</option>
+    <option value="NETWORK">NETWORK</option>
+    <option value="CORTEX">CORTEX</option>
+    <option value="IVR">IVR</option>
+    <option value="ATM">ATM</option>
+    <option value="External Caused">External Caused</option>
+  </select>
+  <input type="text" id="incidentOwnerCustom" placeholder="Or enter custom Incident Owner">
+
+  <input type="text" id="incidentNumber" placeholder="*INCIDENT NUMBER*">
+
+  <button id="generateBtn">Generate Comms</button>
+
+  <div id="outputBox">
+    <h3>Formatted Output</h3>
+    <div id="output"></div>
+    <button id="copyBtn">Copy to Clipboard</button>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      document.getElementById("generateBtn").addEventListener("click", function () {
+        const issue = document.getElementById("issue").value;
+        const impact = document.getElementById("impact").value;
+        const startTime = document.getElementById("startTime").value;
+        const endTime = document.getElementById("endTime").value;
+        const actions = document.getElementById("actions").value;
+
+        // Three mandatory actions
+        const alwaysActions = [
+          "- WebEx call initiated",
+          "- Resolver groups mobilized",
+          "- Diagnoses and Troubleshooting initiated"
+        ];
+        // Add extra actions, one bullet per line if entered
+        let extraActions = actions.trim()
+          ? actions.trim().split('\n').map(a => a.trim()).filter(a => a.length > 0).map(a => "- " + a).join("\n")
+          : "";
+        let actionsText = alwaysActions.join("\n");
+        if (extraActions.length > 0) actionsText += "\n" + extraActions;
+
+        // Resolver Groups: both dropdown and custom input
+        const resolverGroupDropdown = Array.from(document.getElementById('resolverGroups').selectedOptions)
+          .map(option => option.value);
+        const customResolverGroup = document.getElementById('customResolverGroup').value
+          .split(',')
+          .map(item => item.trim())
+          .filter(item => item.length > 0);
+        const resolverGroups = [...resolverGroupDropdown, ...customResolverGroup].join(', ');
+
+        // Business Impact from dropdown
+        const businessImpact = document.getElementById("businessImpact").value;
+
+        const notifySama = document.getElementById("notifySama").value;
+
+        // Incident Owner: dropdown or custom
+        const ownerDropdown = document.getElementById("incidentOwnerSelect").value;
+        const ownerCustom = document.getElementById("incidentOwnerCustom").value.trim();
+        const incidentOwner = ownerCustom ? ownerCustom : ownerDropdown;
+
+        const incidentNumber = document.getElementById("incidentNumber").value;
+
+        const outputText = `*INITIAL - INCIDENT*\n\n*ISSUE:* ${issue}\n\n*IMPACT:* ${impact}\n\n*START TIME:* ${startTime}\n*END TIME:* ${endTime}\n\n*ACTIONS:*\n${actionsText}\n\n*RESOLVER GROUPS:*\n${resolverGroups}\n\n*BUSINESS IMPACT:* ${businessImpact}\n\n*NOTIFY SAMA:* ${notifySama}\n\n*INCIDENT OWNER:* ${incidentOwner}\n\n*INCIDENT NUMBER:* ${incidentNumber}`;
+        
+        document.getElementById("output").textContent = outputText.replace(/\\n/g, "\n").replace(/\n/g, "\n");
+        document.getElementById("outputBox").style.display = "block";
+      });
+
+      document.getElementById("copyBtn").addEventListener("click", function () {
+        const text = document.getElementById("output").textContent;
+        navigator.clipboard.writeText(text).then(function () {
+          alert("Copied to clipboard!");
+        });
+      });
+    });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
+</body>
+</html>
